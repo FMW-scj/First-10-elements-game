@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fill-in-the-Blanks Chemistry Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right, #6EE7B7, #3B82F6);
+        }
+        .container {
+            max-width: 1000px;
+            animation: fadeIn 1s ease-in-out;
+        }
+        .table-container {
+            overflow-x: auto;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 2px solid #D1D5DB;
+            padding: 1rem;
+            text-align: center;
+        }
+        th {
+            background-color: #3B82F6;
+            color: white;
+            font-weight: bold;
+        }
+        td {
+            background-color: white;
+        }
+        td input {
+            background-color: transparent;
+            border: none;
+            text-align: center;
+            outline: none;
+            width: 100%;
+            transition: all 0.2s ease-in-out;
+            font-weight: bold;
+            color: #1F2937;
+        }
+        td:nth-child(even) {
+            background-color: #F9FAFB;
+        }
+        .correct {
+            background-color: #D1FAE5 !important;
+            border-color: #10B981 !important;
+        }
+        .incorrect {
+            background-color: #FEE2E2 !important;
+            border-color: #EF4444 !important;
+        }
+        .info-box {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            z-index: 1000;
+            border: 4px solid #3B82F6;
+            animation: popIn 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 999;
+        }
+        .button {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .button:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="overlay" id="overlay"></div>
+    <div class="info-box" id="infoBox">
+        <div id="infoMessage" class="text-center font-bold text-2xl mb-4 text-gray-800"></div>
+        <div id="scoreMessage" class="text-center text-xl mb-6 text-gray-600"></div>
+        <div class="text-center mt-4">
+            <button onclick="hideInfoBox()" class="button px-8 py-3 bg-blue-500 text-white rounded-full font-bold shadow-lg hover:bg-blue-600 transition-colors">OK</button>
+        </div>
+    </div>
+
+    <div class="container bg-white rounded-xl shadow-2xl p-6 md:p-10 border-4 border-white">
+        <h1 class="text-4xl font-bold text-center mb-4 text-gray-800">Fill-in-the-Blanks Chemistry</h1>
+        <p class="text-center text-gray-600 mb-8 max-w-xl mx-auto">Fill in the missing values for the first 10 elements. The blanks are different each time you play!</p>
+
+        <div class="table-container">
+            <table id="gameTable" class="min-w-full">
+                <thead>
+                    <tr>
+                        <th class="rounded-tl-lg">Atom</th>
+                        <th>Symbol</th>
+                        <th>Protons</th>
+                        <th>Neutrons</th>
+                        <th>Electrons</th>
+                        <th>Atomic number</th>
+                        <th class="rounded-tr-lg">Mass number</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Table rows will be generated here by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex flex-col sm:flex-row justify-center mt-8 space-y-4 sm:space-y-0 sm:space-x-4">
+            <button onclick="checkAnswers()" class="button px-8 py-3 bg-green-500 text-white rounded-full font-bold shadow-lg hover:bg-green-600 transition-transform transform hover:scale-105">Check Answers</button>
+            <button onclick="generateTable()" class="button px-8 py-3 bg-purple-500 text-white rounded-full font-bold shadow-lg hover:bg-purple-600 transition-transform transform hover:scale-105">New Game</button>
+        </div>
+    </div>
+
+    <script>
+        const ELEMENTS = [
+            { atom: 'Hydrogen', symbol: 'H', protons: 1, neutrons: 0, electrons: 1, atomicNumber: 1, massNumber: 1 },
+            { atom: 'Helium', symbol: 'He', protons: 2, neutrons: 2, electrons: 2, atomicNumber: 2, massNumber: 4 },
+            { atom: 'Lithium', symbol: 'Li', protons: 3, neutrons: 4, electrons: 3, atomicNumber: 3, massNumber: 7 },
+            { atom: 'Beryllium', symbol: 'Be', protons: 4, neutrons: 5, electrons: 4, atomicNumber: 4, massNumber: 9 },
+            { atom: 'Boron', symbol: 'B', protons: 5, neutrons: 6, electrons: 5, atomicNumber: 5, massNumber: 11 },
+            { atom: 'Carbon', symbol: 'C', protons: 6, neutrons: 6, electrons: 6, atomicNumber: 6, massNumber: 12 },
+            { atom: 'Nitrogen', symbol: 'N', protons: 7, neutrons: 7, electrons: 7, atomicNumber: 7, massNumber: 14 },
+            { atom: 'Oxygen', symbol: 'O', protons: 8, neutrons: 8, electrons: 8, atomicNumber: 8, massNumber: 16 },
+            { atom: 'Fluorine', symbol: 'F', protons: 9, neutrons: 10, electrons: 9, atomicNumber: 9, massNumber: 19 },
+            { atom: 'Neon', symbol: 'Ne', protons: 10, neutrons: 10, electrons: 10, atomicNumber: 10, massNumber: 20 }
+        ];
+
+        const COLUMN_KEYS = ['atom', 'symbol', 'protons', 'neutrons', 'electrons', 'atomicNumber', 'massNumber'];
+
+        let currentGameData = [];
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function generateBlanks() {
+            const keysToBlank = new Set();
+            const numberOfBlanks = Math.floor(Math.random() * 4) + 2;
+            const shuffledKeys = shuffleArray([...COLUMN_KEYS]);
+            const isMassNeutronPairBlanked = shuffledKeys.slice(0, numberOfBlanks).includes('massNumber') && shuffledKeys.slice(0, numberOfBlanks).includes('neutrons');
+            
+            for (let i = 0; i < numberOfBlanks; i++) {
+                keysToBlank.add(shuffledKeys[i]);
+            }
+
+            if (isMassNeutronPairBlanked) {
+                if (Math.random() > 0.5) {
+                    keysToBlank.delete('massNumber');
+                } else {
+                    keysToBlank.delete('neutrons');
+                }
+            }
+            
+            return keysToBlank;
+        }
+
+        function renderTable() {
+            const tbody = document.querySelector('#gameTable tbody');
+            tbody.innerHTML = '';
+            
+            ELEMENTS.forEach(element => {
+                const blanks = generateBlanks();
+                currentGameData.push({ element: element, blanks: blanks });
+            });
+
+            currentGameData.forEach(rowData => {
+                const tr = document.createElement('tr');
+                COLUMN_KEYS.forEach(key => {
+                    const td = document.createElement('td');
+                    if (rowData.blanks.has(key)) {
+                        td.innerHTML = `<input type="text" data-key="${key}" data-answer="${rowData.element[key]}" class="w-full text-center">`;
+                    } else {
+                        td.textContent = rowData.element[key];
+                    }
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        function generateTable() {
+            currentGameData = [];
+            renderTable();
+        }
+
+        function checkAnswers() {
+            let correctAnswers = 0;
+            let totalBlanks = 0;
+            const inputs = document.querySelectorAll('#gameTable input');
+
+            inputs.forEach(input => {
+                totalBlanks++;
+                const userAnswer = input.value.trim();
+                const correctAnswer = input.dataset.answer;
+                let isCorrect = false;
+
+                const normalizedUserAnswer = isNaN(parseInt(userAnswer)) ? userAnswer.toLowerCase() : parseInt(userAnswer);
+                const normalizedCorrectAnswer = isNaN(parseInt(correctAnswer)) ? correctAnswer.toLowerCase() : parseInt(correctAnswer);
+
+                isCorrect = (normalizedUserAnswer === normalizedCorrectAnswer);
+
+                if (isCorrect) {
+                    input.parentNode.classList.add('correct');
+                    input.parentNode.classList.remove('incorrect');
+                    input.disabled = true;
+                    correctAnswers++;
+                } else {
+                    input.parentNode.classList.remove('correct');
+                    input.parentNode.classList.add('incorrect');
+                    input.value = correctAnswer;
+                    input.disabled = true;
+                }
+            });
+
+            const scoreMessage = document.getElementById('scoreMessage');
+            scoreMessage.textContent = `You got ${correctAnswers} out of ${totalBlanks} correct!`;
+
+            const infoMessage = document.getElementById('infoMessage');
+            if (correctAnswers === totalBlanks) {
+                infoMessage.textContent = '🎉 Excellent! All answers are correct!';
+            } else {
+                infoMessage.textContent = 'Keep trying! Incorrect answers are marked in red, and the correct answers are now shown.';
+            }
+            
+            showInfoBox();
+        }
+
+        function showInfoBox() {
+            const infoBox = document.getElementById('infoBox');
+            const overlay = document.getElementById('overlay');
+            infoBox.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function hideInfoBox() {
+            document.getElementById('infoBox').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', generateTable);
+    </script>
+</body>
+</html>
